@@ -80,15 +80,13 @@ st.markdown(f'<div class="example-box">{target_text}</div>', unsafe_allow_html=T
 if st.session_state.start_time is None:
     st.session_state.start_time = time.time()
 
-# 5. 코드 입력창 (버그 유발 인자 완전 제거 및 최소화)
+# 5. 코드 입력창 (버그 차단을 위해 키워드 인자 'code=' 명시 및 단순화)
 st.write("여기에 코드를 타이핑하세요:")
 
-# 에디터 자체 버그를 피하기 위해 가장 안전한 최소 사양 인자만 전달합니다.
-# height 에러가 지속되므로 무거운 단독 인자들을 제거하고 기본 구조로 호출합니다.
+# ⚠️ 생략된 위치 인자 오류를 막기 위해 code="" 키워드를 명확히 기입했습니다.
 editor_response = code_editor(
-    "",
-    language="python",
-    theme="monokai",
+    code="",
+    lang="python",
     key="coding_editor"
 )
 
