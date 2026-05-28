@@ -80,24 +80,16 @@ st.markdown(f'<div class="example-box">{target_text}</div>', unsafe_allow_html=T
 if st.session_state.start_time is None:
     st.session_state.start_time = time.time()
 
-# 5. 코드 입력창 (height 속성을 정수형 데이터로 변경)
+# 5. 코드 입력창 (버그 유발 인자 완전 제거 및 최소화)
 st.write("여기에 코드를 타이핑하세요:")
 
-custom_options = {
-    "enableBasicAutocompletion": True,
-    "enableLiveAutocompletion": True,
-    "tabSize": 4,
-    "useSoftTabs": True
-}
-
-# ⚠️ height 값을 문자열 "200px" 대신 정수 200으로 설정하여 무조건 안정적으로 작동하게 변경했습니다.
+# 에디터 자체 버그를 피하기 위해 가장 안전한 최소 사양 인자만 전달합니다.
+# height 에러가 지속되므로 무거운 단독 인자들을 제거하고 기본 구조로 호출합니다.
 editor_response = code_editor(
-    code="",
+    "",
     language="python",
     theme="monokai",
-    options=custom_options,
-    key="coding_editor",
-    height=200  # 👈 정수형(int) 데이터 타입으로 완벽 수정
+    key="coding_editor"
 )
 
 # 입력값 추출
