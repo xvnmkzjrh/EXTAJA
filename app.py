@@ -80,7 +80,7 @@ st.markdown(f'<div class="example-box">{target_text}</div>', unsafe_allow_html=T
 if st.session_state.start_time is None:
     st.session_state.start_time = time.time()
 
-# 5. 코드 입력창 (height 속성 타입 수정 완료)
+# 5. 코드 입력창 (height 속성을 정수형 데이터로 변경)
 st.write("여기에 코드를 타이핑하세요:")
 
 custom_options = {
@@ -90,13 +90,14 @@ custom_options = {
     "useSoftTabs": True
 }
 
+# ⚠️ height 값을 문자열 "200px" 대신 정수 200으로 설정하여 무조건 안정적으로 작동하게 변경했습니다.
 editor_response = code_editor(
     code="",
     language="python",
     theme="monokai",
     options=custom_options,
     key="coding_editor",
-    height="200px"  # 👈 [100, 300] 리스트에서 문자열 "200px" 형태로 수정했습니다.
+    height=200  # 👈 정수형(int) 데이터 타입으로 완벽 수정
 )
 
 # 입력값 추출
