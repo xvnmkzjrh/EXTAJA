@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 import random
-import difflib  # 👈 틀린 문자 비교를 위한 파이썬 표준 라이브러리
+import difflib
 
 from code_editor import code_editor
 
@@ -18,7 +18,6 @@ st.markdown("""
         white-space: pre-wrap;
         margin-bottom: 15px;
     }
-    /* 👈 틀린 부분 표시를 위한 스타일 추가 */
     .diff-box {
         background-color: #1e1e1e;
         color: #d4d4d4;
@@ -29,9 +28,9 @@ st.markdown("""
         white-space: pre-wrap;
         line-height: 1.5;
     }
-    .correct { color: #4CAF50; font-weight: bold; }       /* 맞는 글자: 초록색 */
-    .incorrect { color: #FF5252; background-color: #3e1f1f; font-weight: bold; text-decoration: underline; } /* 틀린 글자: 빨간색 + 밑줄 */
-    .missing { color: #FF9800; font-weight: bold; }         /* 누락된 글자: 주황색 */
+    .correct { color: #4CAF50; font-weight: bold; }       
+    .incorrect { color: #FF5252; background-color: #3e1f1f; font-weight: bold; text-decoration: underline; } 
+    .missing { color: #FF9800; font-weight: bold; }         
     </style>
 """, unsafe_allow_html=True)
 
@@ -81,7 +80,7 @@ st.markdown(f'<div class="example-box">{target_text}</div>', unsafe_allow_html=T
 if st.session_state.start_time is None:
     st.session_state.start_time = time.time()
 
-# 5. 코드 입력창 (자동 들여쓰기 및 파이썬 스타일 적용)
+# 5. 코드 입력창 (height 속성 타입 수정 완료)
 st.write("여기에 코드를 타이핑하세요:")
 
 custom_options = {
@@ -97,7 +96,7 @@ editor_response = code_editor(
     theme="monokai",
     options=custom_options,
     key="coding_editor",
-    height=[100, 300]
+    height="200px"  # 👈 [100, 300] 리스트에서 문자열 "200px" 형태로 수정했습니다.
 )
 
 # 입력값 추출
@@ -119,30 +118,28 @@ if st.button("결과 확인"):
         diff_html = ""
         correct_chars = 0
         
-        # difflib.ndiff를 사용하여 두 텍스트의 글자 단위 차이점 분석
         diff = list(difflib.ndiff(target_text_clean, user_input_clean))
         
         for token in diff:
             flag = token[0]
             char = token[2:]
             
-            # 공백 문자 시각화 처리 (줄바꿈 및 스페이스바 대응)
             display_char = char
             if char == "\n":
                 display_char = "↵\n"
             elif char == " ":
-                display_char = "·"  # 눈에 보이지 않는 공백을 점으로 표현 (선택사항)
+                display_char = "·"  
 
-            if flag == " ":    # 일치하는 글자
+            if flag == " ":    
                 diff_html += f'<span class="correct">{display_char}</span>'
-                if char != "\n": # 줄바꿈은 정확도 문자 카운트에서 제외 처리 가능
+                if char != "\n": 
                     correct_chars += 1
-            elif flag == "-":  # 제시어엔 있으나 입력에 누락된 글자
+            elif flag == "-":  
                 diff_html += f'<span class="missing">{display_char}</span>'
-            elif flag == "+":  # 제시어엔 없으나 잘못 추가로 입력한 글자
+            elif flag == "+":  
                 diff_html += f'<span class="incorrect">{display_char}</span>'
 
-        # 정확도 산출 (전체 필요한 글자 수 대비 일치한 글자 수)
+        # 정확도 산출
         accuracy = (correct_chars / max(len(target_text_clean), 1)) * 100
         # 타수(CPM) 계산
         cpm = (len(user_input_clean) / time_taken) * 60
