@@ -1,7 +1,9 @@
 import streamlit as st
 import time
 import random
-from code_editor import code_editor  # 👈 코드 에디터 컴포넌트 추가
+import difflib  # 👈 틀린 문자 비교를 위한 파이썬 표준 라이브러리
+
+from code_editor import code_editor
 
 # 1. 페이지 기본 설정 및 스타일
 st.set_page_config(page_title="코딩 타자 연습 앱", layout="centered")
@@ -16,6 +18,20 @@ st.markdown("""
         white-space: pre-wrap;
         margin-bottom: 15px;
     }
+    /* 👈 틀린 부분 표시를 위한 스타일 추가 */
+    .diff-box {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        padding: 15px;
+        border-radius: 5px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 15px;
+        white-space: pre-wrap;
+        line-height: 1.5;
+    }
+    .correct { color: #4CAF50; font-weight: bold; }       /* 맞는 글자: 초록색 */
+    .incorrect { color: #FF5252; background-color: #3e1f1f; font-weight: bold; text-decoration: underline; } /* 틀린 글자: 빨간색 + 밑줄 */
+    .missing { color: #FF9800; font-weight: bold; }         /* 누락된 글자: 주황색 */
     </style>
 """, unsafe_allow_html=True)
 
@@ -68,7 +84,6 @@ if st.session_state.start_time is None:
 # 5. 코드 입력창 (자동 들여쓰기 및 파이썬 스타일 적용)
 st.write("여기에 코드를 타이핑하세요:")
 
-# 에디터 옵션 설정 (단축키 및 기능 활성화)
 custom_options = {
     "enableBasicAutocompletion": True,
     "enableLiveAutocompletion": True,
@@ -76,11 +91,10 @@ custom_options = {
     "useSoftTabs": True
 }
 
-# code_editor 실행 (Ace Editor 기반으로 자동 들여쓰기 기본 지원)
 editor_response = code_editor(
     code="",
     language="python",
-    theme="monokai",  # 어두운 테마 적용
+    theme="monokai",
     options=custom_options,
     key="coding_editor",
     height=[100, 300]
@@ -94,23 +108,42 @@ if st.button("결과 확인"):
     end_time = time.time()
     time_taken = end_time - st.session_state.start_time
     
-    # 에디터 공백 줄바꿈 문자 정규화 (\r\n 처리가 될 수 있으므로)
-    user_input_clean = user_input.replace("\r\n", "\n").strip()
-    target_text_clean = target_text.strip()
+    # 공백 정규화
+    user_input_clean = user_input.replace("\r\n", "\n").rstrip()
+    target_text_clean = target_text.rstrip()
     
     if not user_input_clean:
         st.warning("입력창이 비어 있습니다. 코드를 입력해 주세요!")
     else:
-        # 정확도 계산 (글자 단위 비교)
+        # 글자 단위 오타 하이라이팅 로직 생성
+        diff_html = ""
         correct_chars = 0
-        min_len = min(len(target_text_clean), len(user_input_clean))
         
-        for i in range(min_len):
-            if target_text_clean[i] == user_input_clean[i]:
-                correct_chars += 1
-                
+        # difflib.ndiff를 사용하여 두 텍스트의 글자 단위 차이점 분석
+        diff = list(difflib.ndiff(target_text_clean, user_input_clean))
+        
+        for token in diff:
+            flag = token[0]
+            char = token[2:]
+            
+            # 공백 문자 시각화 처리 (줄바꿈 및 스페이스바 대응)
+            display_char = char
+            if char == "\n":
+                display_char = "↵\n"
+            elif char == " ":
+                display_char = "·"  # 눈에 보이지 않는 공백을 점으로 표현 (선택사항)
+
+            if flag == " ":    # 일치하는 글자
+                diff_html += f'<span class="correct">{display_char}</span>'
+                if char != "\n": # 줄바꿈은 정확도 문자 카운트에서 제외 처리 가능
+                    correct_chars += 1
+            elif flag == "-":  # 제시어엔 있으나 입력에 누락된 글자
+                diff_html += f'<span class="missing">{display_char}</span>'
+            elif flag == "+":  # 제시어엔 없으나 잘못 추가로 입력한 글자
+                diff_html += f'<span class="incorrect">{display_char}</span>'
+
+        # 정확도 산출 (전체 필요한 글자 수 대비 일치한 글자 수)
         accuracy = (correct_chars / max(len(target_text_clean), 1)) * 100
-        
         # 타수(CPM) 계산
         cpm = (len(user_input_clean) / time_taken) * 60
         
@@ -121,6 +154,11 @@ if st.button("결과 확인"):
         col1.metric(label="정확도", value=f"{accuracy:.1f} %")
         col2.metric(label="타수 (CPM)", value=f"{int(cpm)} 타/분")
         col3.metric(label="소요 시간", value=f"{time_taken:.2f} 초")
+        
+        # 7. 오타 분석 결과 창 보여주기
+        st.write("### 🔍 오타 분석 결과:")
+        st.caption("💡 도움말: 점(·)은 공백, ↵은 줄바꿈 문자입니다. [ 초록: 일치 | 빨강: 오타/초과 입력 | 주황: 누락 ]")
+        st.markdown(f'<div class="diff-box">{diff_html}</div>', unsafe_allow_html=True)
         
         # 피드백 메시지
         if accuracy == 100:
