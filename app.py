@@ -3,12 +3,19 @@ import time
 import random
 import difflib
 
-from code_editor import code_editor
-
-# 1. 페이지 기본 설정 및 스타일
+# 1. 페이지 기본 설정 및 스타일 (순정 text_area를 다크모드 IDE 스타일로 완벽 튜닝)
 st.set_page_config(page_title="코딩 타자 연습 앱", layout="centered")
 st.markdown("""
     <style>
+    /* 입력창을 완전한 개발자 다크모드 코딩창으로 스타일링 */
+    .stTextArea textarea {
+        font-family: 'Courier New', Courier, monospace !important;
+        background-color: #1e1e1e !important;
+        color: #d4d4d4 !important;
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+        tab-size: 4 !important;
+    }
     .example-box {
         background-color: #f0f2f6;
         padding: 15px;
@@ -80,49 +87,25 @@ st.markdown(f'<div class="example-box">{target_text}</div>', unsafe_allow_html=T
 if st.session_state.start_time is None:
     st.session_state.start_time = time.time()
 
-# 5. 코드 입력창
-st.write("여기에 코드를 타이핑하세요:")
-
-# 💡 컴포넌트가 값이 바뀔 때마다 스트림릿으로 전송하도록 컴포넌트 이벤트를 지정합니다.
-# "blur"와 "change" 이벤트를 켜두면 포커스를 잃거나 타이핑이 바뀔 때 데이터를 즉시 갱신합니다.
-config_dict = {
-    "display_in_秀": False
-}
-buttons_dict = [
-    {
-        "name": "제출하기",
-        "feather": "Play",
-        "primary": True,
-        "hasSecondary": False,
-        "showConfirmedTask": False,
-        "alwaysOn": True,
-        "commands": ["submit"]
-    }
-]
-
-editor_response = code_editor(
-    code="",
-    lang="python",
-    key="coding_editor",
-    buttons=buttons_dict,  # 에디터 내부에 즉시 전송 버튼 배치
-    response_mode="debounce", # 타이핑이 멈추면 잠시 후 자동으로 값을 전송하는 모드
-    delay=500
+# 5. 순정 코드 입력창 (버그 확률 0%)
+user_input = st.text_area(
+    "여기에 코드를 타이핑하세요 (작성 후 Ctrl + Enter를 누르면 값이 고정됩니다):", 
+    value="",
+    height=150,
+    key="typing_area"
 )
-
-# 입력값 추출
-user_input = editor_response.get("text", "")
 
 # 6. 결과 확인 버튼 클릭 시 로직
 if st.button("결과 확인"):
     end_time = time.time()
     time_taken = end_time - st.session_state.start_time
     
-    # 공백 정규화
+    # 공백 및 인코딩 정규화
     user_input_clean = user_input.replace("\r\n", "\n").rstrip()
     target_text_clean = target_text.rstrip()
     
     if not user_input_clean:
-        st.warning("⚠️ 에디터에 타이핑하신 후, 에디터 내부의 [제출하기(▶)] 버튼을 먼저 누르거나 창 바깥을 한번 클릭한 뒤 '결과 확인'을 눌러주세요!")
+        st.warning("입력창이 비어 있습니다. 코드를 입력한 후 Ctrl+Enter를 누르거나 창 바깥을 클릭하고 버튼을 눌러주세요!")
     else:
         # 글자 단위 오타 하이라이팅 로직 생성
         diff_html = ""
