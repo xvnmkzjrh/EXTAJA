@@ -80,14 +80,33 @@ st.markdown(f'<div class="example-box">{target_text}</div>', unsafe_allow_html=T
 if st.session_state.start_time is None:
     st.session_state.start_time = time.time()
 
-# 5. 코드 입력창 (버그 차단을 위해 키워드 인자 'code=' 명시 및 단순화)
+# 5. 코드 입력창
 st.write("여기에 코드를 타이핑하세요:")
 
-# ⚠️ 생략된 위치 인자 오류를 막기 위해 code="" 키워드를 명확히 기입했습니다.
+# 💡 컴포넌트가 값이 바뀔 때마다 스트림릿으로 전송하도록 컴포넌트 이벤트를 지정합니다.
+# "blur"와 "change" 이벤트를 켜두면 포커스를 잃거나 타이핑이 바뀔 때 데이터를 즉시 갱신합니다.
+config_dict = {
+    "display_in_秀": False
+}
+buttons_dict = [
+    {
+        "name": "제출하기",
+        "feather": "Play",
+        "primary": True,
+        "hasSecondary": False,
+        "showConfirmedTask": False,
+        "alwaysOn": True,
+        "commands": ["submit"]
+    }
+]
+
 editor_response = code_editor(
     code="",
     lang="python",
-    key="coding_editor"
+    key="coding_editor",
+    buttons=buttons_dict,  # 에디터 내부에 즉시 전송 버튼 배치
+    response_mode="debounce", # 타이핑이 멈추면 잠시 후 자동으로 값을 전송하는 모드
+    delay=500
 )
 
 # 입력값 추출
@@ -103,7 +122,7 @@ if st.button("결과 확인"):
     target_text_clean = target_text.rstrip()
     
     if not user_input_clean:
-        st.warning("입력창이 비어 있습니다. 코드를 입력해 주세요!")
+        st.warning("⚠️ 에디터에 타이핑하신 후, 에디터 내부의 [제출하기(▶)] 버튼을 먼저 누르거나 창 바깥을 한번 클릭한 뒤 '결과 확인'을 눌러주세요!")
     else:
         # 글자 단위 오타 하이라이팅 로직 생성
         diff_html = ""
