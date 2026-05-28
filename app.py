@@ -1,16 +1,12 @@
 import streamlit as st
 import time
+import random
+from code_editor import code_editor  # 👈 코드 에디터 컴포넌트 추가
 
-# 1. 페이지 기본 설정 및 스타일 (코드 입력창처럼 보이도록 스타일링)
+# 1. 페이지 기본 설정 및 스타일
 st.set_page_config(page_title="코딩 타자 연습 앱", layout="centered")
 st.markdown("""
     <style>
-    .stTextArea textarea {
-        font-family: 'Courier New', Courier, monospace !important;
-        background-color: #1e1e1e !important;
-        color: #d4d4d4 !important;
-        font-size: 16px !important;
-    }
     .example-box {
         background-color: #f0f2f6;
         padding: 15px;
@@ -44,8 +40,8 @@ sentences = {
         "items = {'apple': 2, 'banana': 5}"
     ],
     "상 (고수)": [
-        "@st.cache_data\ndef fetch_api_data(url, timeout=5):",
-        "try:\n    result = lambda a, b : a if a > b else b\nexcept Exception as e:",
+        "@st.cache_data\ndef fetch_api_data(url, timeout=5):\n    return data",
+        "try:\n    result = lambda a, b : a if a > b else b\nexcept Exception as e:\n    print(e)",
         "class TypingTest(BaseModel):\n    id: int\n    accuracy: float",
         "with open('requirements.txt', 'r') as f:\n    lines = f.readlines()"
     ]
@@ -56,10 +52,8 @@ level = st.selectbox("난이도를 선택하세요:", list(sentences.keys()))
 
 # 세션 상태 초기화 (단어 변경 시 시간 및 텍스트 리셋을 위함)
 if "current_sentence" not in st.session_state or st.button("새 문장 가져오기"):
-    import random
     st.session_state.current_sentence = random.choice(sentences[level])
     st.session_state.start_time = None
-    st.session_state.user_input = ""
 
 target_text = st.session_state.current_sentence
 
@@ -71,35 +65,54 @@ st.markdown(f'<div class="example-box">{target_text}</div>', unsafe_allow_html=T
 if st.session_state.start_time is None:
     st.session_state.start_time = time.time()
 
-# 5. 코드 입력창 (TextArea 이용)
-user_input = st.text_area(
-    "여기에 코드를 타이핑하세요 (Ctrl + Enter로 제출 가능):", 
-    key="typing_area",
-    height=100
+# 5. 코드 입력창 (자동 들여쓰기 및 파이썬 스타일 적용)
+st.write("여기에 코드를 타이핑하세요:")
+
+# 에디터 옵션 설정 (단축키 및 기능 활성화)
+custom_options = {
+    "enableBasicAutocompletion": True,
+    "enableLiveAutocompletion": True,
+    "tabSize": 4,
+    "useSoftTabs": True
+}
+
+# code_editor 실행 (Ace Editor 기반으로 자동 들여쓰기 기본 지원)
+editor_response = code_editor(
+    code="",
+    language="python",
+    theme="monokai",  # 어두운 테마 적용
+    options=custom_options,
+    key="coding_editor",
+    height=[100, 300]
 )
+
+# 입력값 추출
+user_input = editor_response.get("text", "")
 
 # 6. 결과 확인 버튼 클릭 시 로직
 if st.button("결과 확인"):
     end_time = time.time()
     time_taken = end_time - st.session_state.start_time
     
-    if not user_input:
+    # 에디터 공백 줄바꿈 문자 정규화 (\r\n 처리가 될 수 있으므로)
+    user_input_clean = user_input.replace("\r\n", "\n").strip()
+    target_text_clean = target_text.strip()
+    
+    if not user_input_clean:
         st.warning("입력창이 비어 있습니다. 코드를 입력해 주세요!")
     else:
         # 정확도 계산 (글자 단위 비교)
         correct_chars = 0
-        min_len = min(len(target_text), len(user_input))
+        min_len = min(len(target_text_clean), len(user_input_clean))
         
         for i in range(min_len):
-            if target_text[i] == user_input[i]:
+            if target_text_clean[i] == user_input_clean[i]:
                 correct_chars += 1
                 
-        accuracy = (correct_chars / max(len(target_text), 1)) * 100
+        accuracy = (correct_chars / max(len(target_text_clean), 1)) * 100
         
-        # 타수(CPM) 및 단어수(WPM) 계산 
-        # (통상 5글자를 1단어로 취급하나, 여기서는 실제 타이핑한 글자 수 기반 계산)
-        cpm = (len(user_input) / time_taken) * 60
-        wpm = cpm / 5
+        # 타수(CPM) 계산
+        cpm = (len(user_input_clean) / time_taken) * 60
         
         # 결과 화면 출력
         st.success(f"🎉 {user_name}님의 연습 결과입니다!")
